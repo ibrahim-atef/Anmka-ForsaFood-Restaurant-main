@@ -1,0 +1,2 @@
+/Users/mrwan/Desktop/Anmka/Anmka-ForsaFood-Restaurant/android/app/.cxx/Debug/5q645q2r/armeabi-v7a/CMakeFiles/edit_cache.dir
+/Users/mrwan/Desktop/Anmka/Anmka-ForsaFood-Restaurant/android/app/.cxx/Debug/5q645q2r/armeabi-v7a/CMakeFiles/rebuild_cache.dir
