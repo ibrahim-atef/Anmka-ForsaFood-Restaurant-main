@@ -35,6 +35,11 @@ subprojects {
     afterEvaluate { proj ->
         if (proj.hasProperty('android')) {
             proj.android {
+                // Set compileSdk for all subprojects
+                if (proj.android.compileSdk == null || proj.android.compileSdk < 34) {
+                    proj.android.compileSdk = 34
+                }
+                
                 // Enable data binding for flutter_osm_plugin (it needs it)
                 if (proj.name.contains('flutter_osm_plugin')) {
                     dataBinding {
