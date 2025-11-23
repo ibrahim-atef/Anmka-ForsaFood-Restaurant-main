@@ -1152,40 +1152,133 @@ static Future<bool> updateMenu(ProductModel menu) async {
       bool isUpcoming) async {
     List<DineInBookingModel> list = [];
 
-    if (isUpcoming) {
-      await fireStore
+    try {
+      if (Constant.userModel?.vendorID == null || Constant.userModel!.vendorID!.isEmpty) {
+        print("⚠️ VendorID is null or empty");
+        return list;
+      }
+
+      print("🔍 Fetching Dine In bookings for vendorID: ${Constant.userModel!.vendorID}");
+      print("📅 isUpcoming: $isUpcoming");
+
+      Query query = fireStore
           .collection(CollectionName.bookedTable)
-          .where('vendorID', isEqualTo: Constant.userModel!.vendorID)
-          .where('date', isGreaterThan: Timestamp.now())
-          .orderBy('date', descending: true)
-          .orderBy('createdAt', descending: true)
-          .get()
-          .then((value) {
+          .where('vendorID', isEqualTo: Constant.userModel!.vendorID);
+
+      if (isUpcoming) {
+        query = query.where('date', isGreaterThan: Timestamp.now());
+      } else {
+        query = query.where('date', isLessThanOrEqualTo: Timestamp.now());
+      }
+
+      // Order by date only (Firestore doesn't allow multiple orderBy without composite index)
+      query = query.orderBy('date', descending: true);
+
+      await query.get().then((value) {
+        print("✅ Found ${value.docs.length} bookings");
         for (var element in value.docs) {
-          DineInBookingModel taxModel =
-              DineInBookingModel.fromJson(element.data());
-          list.add(taxModel);
+          try {
+            Map<String, dynamic> data = element.data() as Map<String, dynamic>;
+            data['id'] = element.id; // Ensure ID is set
+            DineInBookingModel bookingModel = DineInBookingModel.fromJson(data);
+            list.add(bookingModel);
+            print("📋 Added booking: ${bookingModel.id}, Status: ${bookingModel.status}, Date: ${bookingModel.date}");
+          } catch (e) {
+            print("❌ Error parsing booking: $e");
+            print("📄 Document data: ${element.data()}");
+          }
+        }
+        
+        // Sort by createdAt after fetching (client-side sorting)
+        if (isUpcoming) {
+          list.sort((a, b) {
+            if (a.date != null && b.date != null) {
+              int dateCompare = b.date!.compareTo(a.date!);
+              if (dateCompare != 0) return dateCompare;
+            }
+            if (a.createdAt != null && b.createdAt != null) {
+              return b.createdAt!.compareTo(a.createdAt!);
+            }
+            return 0;
+          });
+        } else {
+          list.sort((a, b) {
+            if (a.date != null && b.date != null) {
+              int dateCompare = b.date!.compareTo(a.date!);
+              if (dateCompare != 0) return dateCompare;
+            }
+            if (a.createdAt != null && b.createdAt != null) {
+              return b.createdAt!.compareTo(a.createdAt!);
+            }
+            return 0;
+          });
         }
       }).catchError((error) {
+        print("❌ Error fetching bookings: $error");
         log(error.toString());
-      });
-    } else {
-      await fireStore
-          .collection(CollectionName.bookedTable)
-          .where('vendorID', isEqualTo: Constant.userModel!.vendorID)
-          .where('date', isLessThan: Timestamp.now())
-          .orderBy('date', descending: true)
-          .orderBy('createdAt', descending: true)
-          .get()
-          .then((value) {
-        for (var element in value.docs) {
-          DineInBookingModel taxModel =
-              DineInBookingModel.fromJson(element.data());
-          list.add(taxModel);
+        // Try simpler query without date filter if the first one fails
+        if (error.toString().contains('index')) {
+          print("⚠️ Index error, trying simpler query...");
+          return getDineInBookingSimple(isUpcoming);
         }
-      }).catchError((error) {
-        log(error.toString());
       });
+    } catch (e) {
+      print("❌ Exception in getDineInBooking: $e");
+    }
+
+    print("📊 Returning ${list.length} bookings");
+    return list;
+  }
+
+  // Fallback method with simpler query
+  static Future<List<DineInBookingModel>> getDineInBookingSimple(
+      bool isUpcoming) async {
+    List<DineInBookingModel> list = [];
+
+    try {
+      if (Constant.userModel?.vendorID == null || Constant.userModel!.vendorID!.isEmpty) {
+        return list;
+      }
+
+      Query query = fireStore
+          .collection(CollectionName.bookedTable)
+          .where('vendorID', isEqualTo: Constant.userModel!.vendorID);
+
+      await query.get().then((value) {
+        for (var element in value.docs) {
+          try {
+            Map<String, dynamic> data = element.data() as Map<String, dynamic>;
+            data['id'] = element.id;
+            DineInBookingModel bookingModel = DineInBookingModel.fromJson(data);
+            
+            // Filter by date on client side
+            if (bookingModel.date != null) {
+              if (isUpcoming && bookingModel.date!.toDate().isAfter(DateTime.now())) {
+                list.add(bookingModel);
+              } else if (!isUpcoming && bookingModel.date!.toDate().isBefore(DateTime.now()) || 
+                         bookingModel.date!.toDate().isAtSameMomentAs(DateTime.now())) {
+                list.add(bookingModel);
+              }
+            }
+          } catch (e) {
+            print("❌ Error parsing booking: $e");
+          }
+        }
+        
+        // Sort by date and createdAt
+        list.sort((a, b) {
+          if (a.date != null && b.date != null) {
+            int dateCompare = b.date!.compareTo(a.date!);
+            if (dateCompare != 0) return dateCompare;
+          }
+          if (a.createdAt != null && b.createdAt != null) {
+            return b.createdAt!.compareTo(a.createdAt!);
+          }
+          return 0;
+        });
+      });
+    } catch (e) {
+      print("❌ Exception in getDineInBookingSimple: $e");
     }
 
     return list;

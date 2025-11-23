@@ -57,7 +57,7 @@ dependencies:
   geolocator: any
   location: ^7.0.1
   get: ^4.6.6
-  google_sign_in: ^6.2.2
+  google_sign_in:
   image_picker: ^1.1.2
   intl: ^0.19.0
   pin_code_fields: ^8.0.1
@@ -90,10 +90,10 @@ dependencies:
   dropdown_search: ^5.0.6
   flutter_multi_formatter: ^2.13.0
   audioplayers: ^6.1.0
-  image_gallery_saver_plus: ^3.0.5
+  image_gallery_saver: ^1.0.0
 
-  osm_nominatim: ^3.0.1
-  flutter_osm_plugin: ^1.3.6
+  osm_nominatim:
+  flutter_osm_plugin:
 
   video_player: ^2.9.2
   google_maps_flutter: ^2.10.0
@@ -103,7 +103,7 @@ dependencies:
   esc_pos_utils: any
   print_bluetooth_thermal: ^1.1.5
   get_thumbnail_video: ^0.7.3
-  syncfusion_flutter_pdf: 27.1.53
+  syncfusion_flutter_pdf:
 
   #payment dependency
   flutter_stripe: ^11.3.0
@@ -117,11 +117,10 @@ dependencies:
 dependency_overrides:
   webview_flutter: ^4.8.0
   http: ^1.2.2
-  google_api_headers: ^4.3.1
   package_info_plus: ^8.1.3
   web: ^1.1.0
-  syncfusion_flutter_core: 27.1.53
-  syncfusion_flutter_datepicker: 27.1.53
+  syncfusion_flutter_core:
+  syncfusion_flutter_datepicker:
 
 dev_dependencies:
   flutter_test:

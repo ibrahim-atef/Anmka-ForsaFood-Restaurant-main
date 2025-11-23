@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 import 'package:restaurant/app/add_restaurant_screen/add_restaurant_screen.dart';
 import 'package:restaurant/app/dine_in_screen/dine_in_create_screen.dart';
+import 'package:restaurant/app/dine_in_screen/dine_in_settings_screen.dart';
 import 'package:restaurant/app/verification_screen/verification_screen.dart';
 import 'package:restaurant/constant/constant.dart';
 import 'package:restaurant/constant/send_notification.dart';
@@ -17,6 +18,8 @@ import 'package:restaurant/utils/dark_theme_provider.dart';
 import 'package:restaurant/utils/fire_store_utils.dart';
 import 'package:restaurant/utils/network_image_widget.dart';
 import 'package:restaurant/widget/my_separator.dart';
+
+import '../../models/vendor_model.dart';
 
 class DineInOrderScreen extends StatelessWidget {
   const DineInOrderScreen({super.key});
@@ -66,6 +69,8 @@ class DineInOrderScreen extends StatelessWidget {
                       bottom: TabBar(
                         onTap: (value) {
                           controller.selectedTabIndex.value = value;
+                          // Refresh data when switching tabs
+                          controller.getDineBooking();
                         },
                         labelStyle: const TextStyle(fontFamily: AppThemeData.semiBold),
                         labelColor: themeChange.getThem() ? AppThemeData.grey50 : AppThemeData.grey50,
@@ -134,8 +139,9 @@ class DineInOrderScreen extends StatelessWidget {
                               ],
                             ),
                           )
-                        : controller.userModel.value.vendorID == null || controller.userModel.value.vendorID!.isEmpty
-                            ? Padding(
+                        : Obx(() {
+                            if (controller.userModel.value.vendorID == null || controller.userModel.value.vendorID!.isEmpty) {
+                              return Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: 16),
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
@@ -183,100 +189,132 @@ class DineInOrderScreen extends StatelessWidget {
                                     ),
                                   ],
                                 ),
-                              )
-                            : (controller.vendorModel.value.restaurantCost == null || controller.vendorModel.value.restaurantCost!.isEmpty)
-                                ? Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      crossAxisAlignment: CrossAxisAlignment.center,
-                                      children: [
-                                        Container(
-                                          decoration: ShapeDecoration(
-                                            color: themeChange.getThem() ? AppThemeData.grey700 : AppThemeData.grey200,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(120),
-                                            ),
-                                          ),
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(20),
-                                            child: SvgPicture.asset("assets/icons/ic_dinein.svg"),
-                                          ),
+                              );
+                            }
+                            
+                            if (controller.vendorModel.value.dineInSettings == null || 
+                                controller.vendorModel.value.dineInSettings!.isEnabled != true) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      decoration: ShapeDecoration(
+                                        color: themeChange.getThem() ? AppThemeData.grey700 : AppThemeData.grey200,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(120),
                                         ),
-                                        const SizedBox(
-                                          height: 12,
-                                        ),
-                                        Text(
-                                          "Dine-In Details Missing".tr,
-                                          style: TextStyle(
-                                              color: themeChange.getThem() ? AppThemeData.grey100 : AppThemeData.grey800, fontSize: 22, fontFamily: AppThemeData.semiBold),
-                                        ),
-                                        const SizedBox(
-                                          height: 5,
-                                        ),
-                                        Text(
-                                          "Please add your restaurant’s dine-in details to start accepting reservations.".tr,
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(color: themeChange.getThem() ? AppThemeData.grey50 : AppThemeData.grey500, fontSize: 16, fontFamily: AppThemeData.bold),
-                                        ),
-                                        const SizedBox(
-                                          height: 20,
-                                        ),
-                                        RoundedButtonFill(
-                                          title: "Add Dine in".tr,
-                                          width: 55,
-                                          height: 5.5,
-                                          color: AppThemeData.primary300,
-                                          textColor: AppThemeData.grey50,
-                                          onPress: () async {
-                                            Get.to(const DineInCreateScreen());
-                                          },
-                                        ),
-                                      ],
+                                      ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(20),
+                                        child: SvgPicture.asset("assets/icons/ic_dinein.svg"),
+                                      ),
                                     ),
-                                  )
-                                : Padding(
+                                    const SizedBox(
+                                      height: 12,
+                                    ),
+                                    Text(
+                                      "Dine-In Details Missing".tr,
+                                      style: TextStyle(
+                                          color: themeChange.getThem() ? AppThemeData.grey100 : AppThemeData.grey800, fontSize: 22, fontFamily: AppThemeData.semiBold),
+                                    ),
+                                    const SizedBox(
+                                      height: 5,
+                                    ),
+                                    Text(
+                                      "Please enable Dine In in settings and configure your dine-in details to start accepting reservations.".tr,
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(color: themeChange.getThem() ? AppThemeData.grey50 : AppThemeData.grey500, fontSize: 16, fontFamily: AppThemeData.bold),
+                                    ),
+                                    const SizedBox(
+                                      height: 20,
+                                    ),
+                                    RoundedButtonFill(
+                                      title: "Go to Dine In Settings".tr,
+                                      width: 55,
+                                      height: 5.5,
+                                      color: AppThemeData.primary300,
+                                      textColor: AppThemeData.grey50,
+                                      onPress: () async {
+                                        await Get.to(const DineInSettingsScreen());
+                                        // Refresh vendor data after returning from settings
+                                        if (Constant.userModel?.vendorID != null && Constant.userModel!.vendorID!.isNotEmpty) {
+                                          await FireStoreUtils.getVendorById(Constant.userModel!.vendorID.toString()).then(
+                                            (value) {
+                                              if (value != null) {
+                                                controller.vendorModel.value = value;
+                                                controller.update();
+                                              }
+                                            },
+                                          );
+                                        }
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                            
+                            return Padding(
                                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                                     child: TabBarView(
                                       children: [
-                                        controller.featureList.isEmpty
-                                            ? Constant.showEmptyView(message: "Upcoming Booking not found.")
-                                            : RefreshIndicator(
-                                                onRefresh: () => controller.getDineBooking(),
-                                                child: ListView.builder(
-                                                  shrinkWrap: true,
-                                                  padding: EdgeInsets.zero,
-                                                  scrollDirection: Axis.vertical,
-                                                  itemCount: controller.featureList.length,
-                                                  itemBuilder: (BuildContext context, int index) {
-                                                    DineInBookingModel dineBookingModel = controller.featureList[index];
-                                                    return itemView(themeChange, context, dineBookingModel, true, controller);
-                                                  },
-                                                ),
-                                              ),
-                                        controller.historyList.isEmpty
-                                            ? Constant.showEmptyView(message: "History not found.")
-                                            : RefreshIndicator(
-                                                onRefresh: () => controller.getDineBooking(),
-                                                child: ListView.builder(
-                                                  itemCount: controller.historyList.length,
-                                                  shrinkWrap: true,
-                                                  padding: EdgeInsets.zero,
-                                                  itemBuilder: (context, index) {
-                                                    DineInBookingModel dineBookingModel = controller.historyList[index];
-                                                    return itemView(themeChange, context, dineBookingModel, false, controller);
-                                                  },
-                                                ),
-                                              ),
+                                        Obx(() {
+                                          print("🔄 Upcoming bookings count: ${controller.featureList.length}");
+                                          return controller.featureList.isEmpty
+                                              ? Constant.showEmptyView(message: "Upcoming Booking not found.")
+                                              : RefreshIndicator(
+                                                  onRefresh: () => controller.getDineBooking(),
+                                                  child: ListView.builder(
+                                                    shrinkWrap: true,
+                                                    padding: EdgeInsets.zero,
+                                                    scrollDirection: Axis.vertical,
+                                                    itemCount: controller.featureList.length,
+                                                    itemBuilder: (BuildContext context, int index) {
+                                                      DineInBookingModel dineBookingModel = controller.featureList[index];
+                                                      print("📋 Building item $index: ${dineBookingModel.id}");
+                                                      return itemView(themeChange, context, dineBookingModel, true, controller);
+                                                    },
+                                                  ),
+                                                );
+                                        }),
+                                        Obx(() {
+                                          print("🔄 History bookings count: ${controller.historyList.length}");
+                                          return controller.historyList.isEmpty
+                                              ? Constant.showEmptyView(message: "History not found.")
+                                              : RefreshIndicator(
+                                                  onRefresh: () => controller.getDineBooking(),
+                                                  child: ListView.builder(
+                                                    itemCount: controller.historyList.length,
+                                                    shrinkWrap: true,
+                                                    padding: EdgeInsets.zero,
+                                                    itemBuilder: (context, index) {
+                                                      DineInBookingModel dineBookingModel = controller.historyList[index];
+                                                      print("📋 Building history item $index: ${dineBookingModel.id}");
+                                                      return itemView(themeChange, context, dineBookingModel, false, controller);
+                                                    },
+                                                  ),
+                                                );
+                                        }),
                                       ],
                                     ),
-                                  ),
+                                  );
+                          })
                   ),
                 );
         });
   }
 
   itemView(DarkThemeProvider themeChange, BuildContext context, DineInBookingModel orderModel, bool isNew, DineInOrderController controller) {
+    // Use vendor from controller if orderModel.vendor is null
+    VendorModel? vendor = orderModel.vendor ?? controller.vendorModel.value;
+    
+    if (vendor == null || vendor.id == null) {
+      return const SizedBox.shrink();
+    }
+    
     return InkWell(
       onTap: () {},
       child: Padding(
@@ -299,7 +337,7 @@ class DineInOrderScreen extends StatelessWidget {
                       child: Stack(
                         children: [
                           NetworkImageWidget(
-                            imageUrl: orderModel.vendor!.photo.toString(),
+                            imageUrl: vendor.photo ?? "",
                             fit: BoxFit.cover,
                             height: Responsive.height(10, context),
                             width: Responsive.width(20, context),
@@ -339,7 +377,7 @@ class DineInOrderScreen extends StatelessWidget {
                             height: 5,
                           ),
                           Text(
-                            orderModel.vendor!.title.toString(),
+                            vendor.title ?? "",
                             style: TextStyle(
                               fontSize: 16,
                               color: themeChange.getThem() ? AppThemeData.grey50 : AppThemeData.grey900,

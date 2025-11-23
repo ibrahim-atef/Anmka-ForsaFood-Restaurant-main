@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:restaurant/constant/collection_name.dart';
 import 'package:restaurant/constant/constant.dart';
+import 'package:restaurant/models/driver_document_model.dart';
 import 'package:restaurant/models/order_model.dart';
 import 'package:restaurant/models/user_model.dart';
 import 'package:restaurant/models/vendor_model.dart';
@@ -49,8 +50,56 @@ class HomeController extends GetxController {
         },
       );
     }
+    // Check document verification status
+    await checkDocumentVerificationStatus();
     await getOrder();
     isLoading.value = false;
+  }
+
+  checkDocumentVerificationStatus() async {
+    if (Constant.isRestaurantVerification == true) {
+      try {
+        // Get document list and driver documents
+        final documentList = await FireStoreUtils.getDocumentList();
+        final driverDocumentData = await FireStoreUtils.getDocumentOfDriver();
+        
+        if (documentList.isNotEmpty && driverDocumentData != null && driverDocumentData.documents != null) {
+          // Check if all required documents are approved
+          bool allApproved = true;
+          bool hasUploadedDocuments = false;
+          
+          for (var docModel in documentList) {
+            var driverDoc = driverDocumentData.documents!.firstWhere(
+              (doc) => doc.documentId == docModel.id,
+              orElse: () => Documents(status: "pending"),
+            );
+            
+            // Check if document is uploaded (not pending)
+            if (driverDoc.status != null && driverDoc.status != "pending") {
+              hasUploadedDocuments = true;
+              
+              // If document is uploaded but not approved, then not all are approved
+              if (driverDoc.status != "approved") {
+                allApproved = false;
+              }
+            }
+          }
+          
+          // Update isDocumentVerify if all uploaded documents are approved
+          // Only update if there are uploaded documents and all are approved
+          if (hasUploadedDocuments && allApproved) {
+            if (userModel.value.isDocumentVerify != true) {
+              userModel.value.isDocumentVerify = true;
+              await FireStoreUtils.updateUser(userModel.value);
+              Constant.userModel = userModel.value;
+              update(); // Refresh UI
+            }
+          }
+        }
+      } catch (e) {
+        print("Error checking document verification status: $e");
+      }
+    }
   }
 
   getOrder() async {

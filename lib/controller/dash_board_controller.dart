@@ -28,15 +28,13 @@ class DashBoardController extends GetxController {
     pageList.value = Constant.isDineInEnable && Constant.userModel!.subscriptionPlan?.features?.dineIn != false
         ? [
       const HomeScreen(),
-      // const DineInOrderScreen(),
+      const DineInOrderScreen(),
       const ProductListScreen(),
-      // const WalletScreen(),
       const ProfileScreen(),
     ]
         : [
       const HomeScreen(),
       const ProductListScreen(),
-      // const WalletScreen(),
       const ProfileScreen(),
     ];
 

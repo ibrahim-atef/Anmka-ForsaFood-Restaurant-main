@@ -10,6 +10,7 @@ import 'package:restaurant/app/add_story_screen/add_story_screen.dart';
 import 'package:restaurant/app/auth_screen/login_screen.dart';
 import 'package:restaurant/app/change%20langauge/change_language_screen.dart';
 import 'package:restaurant/app/dine_in_screen/dine_in_create_screen.dart';
+import 'package:restaurant/app/dine_in_screen/dine_in_settings_screen.dart';
 import 'package:restaurant/app/edit_profile_screen/edit_profile_screen.dart';
 import 'package:restaurant/app/offer_screens/offer_screen.dart';
 import 'package:restaurant/app/special_discount_screen/special_discount_screen.dart';
@@ -307,6 +308,36 @@ class ProfileScreen extends StatelessWidget {
                                                 : 1;
                                           },
                                         ),
+                                  (Constant.isDineInEnable &&
+                                          Constant.userModel!.subscriptionPlan?.features?.dineIn != false)
+                                      ? cardDecoration(
+                                          themeChange,
+                                          controller,
+                                          Container(
+                                            width: 44,
+                                            height: 44,
+                                            decoration: ShapeDecoration(
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(120),
+                                              ),
+                                            ),
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(10),
+                                              child: SvgPicture.asset(
+                                                "assets/icons/ic_dinein.svg",
+                                                colorFilter: ColorFilter.mode(
+                                                    AppThemeData.primary300,
+                                                    BlendMode.srcIn),
+                                              ),
+                                            ),
+                                          ),
+                                          "Dine In Settings".tr,
+                                          () {
+                                            Get.to(const DineInSettingsScreen());
+                                          },
+                                        )
+                                      : const SizedBox(),
                                   (Constant.isRestaurantVerification == true &&
                                               controller.userModel.value
                                                       .isDocumentVerify ==

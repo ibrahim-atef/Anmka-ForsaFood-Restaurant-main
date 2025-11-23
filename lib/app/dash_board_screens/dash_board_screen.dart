@@ -67,13 +67,13 @@ class DashBoardScreen extends StatelessWidget {
                           label: 'Orders'.tr,
                           controller: controller,
                         ),
-                        // navigationBarItem(
-                        //   themeChange,
-                        //   index: 1,
-                        //   assetIcon: "assets/icons/ic_dinein.svg",
-                        //   label: 'Dine in'.tr,
-                        //   controller: controller,
-                        // ),
+                        navigationBarItem(
+                          themeChange,
+                          index: 1,
+                          assetIcon: "assets/icons/ic_dinein.svg",
+                          label: 'Dine In'.tr,
+                          controller: controller,
+                        ),
                         navigationBarItem(
                           themeChange,
                           index: 2,
@@ -81,16 +81,9 @@ class DashBoardScreen extends StatelessWidget {
                           label: 'Menu'.tr,
                           controller: controller,
                         ),
-                        // navigationBarItem(
-                        //   themeChange,
-                        //   index: 3,
-                        //   assetIcon: "assets/icons/ic_wallet.svg",
-                        //   label: 'Wallet'.tr,
-                        //   controller: controller,
-                        // ),
                         navigationBarItem(
                           themeChange,
-                          index: 2,
+                          index: 3,
                           assetIcon: "assets/icons/ic_profile.svg",
                           label: 'Profile'.tr,
                           controller: controller,

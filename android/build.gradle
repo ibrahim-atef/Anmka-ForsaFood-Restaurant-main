@@ -1,3 +1,16 @@
+buildscript {
+    ext.kotlin_version = '1.9.22'
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.1.1'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath 'com.google.gms:google-services:4.4.2'
+    }
+}
+
 allprojects {
     repositories {
         google()
@@ -6,14 +19,88 @@ allprojects {
 }
 
 rootProject.buildDir = "../build"
+
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
+    
+    // Force Kotlin version for all subprojects
+    buildscript {
+        ext.kotlin_version = '1.9.10'
+        dependencies {
+            classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        }
+    }
+    
+    // Ensure consistent JVM targets across all subprojects
+    afterEvaluate { proj ->
+        if (proj.hasProperty('android')) {
+            proj.android {
+                // Enable data binding for flutter_osm_plugin (it needs it)
+                if (proj.name.contains('flutter_osm_plugin')) {
+                    dataBinding {
+                        enabled = true
+                    }
+                }
+                
+                // Add namespace if not specified (required for AGP 8+)
+                try {
+                    if (proj.android.namespace == null) {
+                        def manifestFile = file("${proj.projectDir}/src/main/AndroidManifest.xml")
+                        if (manifestFile.exists()) {
+                            def manifestText = manifestFile.text
+                            def packageMatch = (manifestText =~ /package=["']([^"']+)["']/)
+                            if (packageMatch.find()) {
+                                proj.android.namespace = packageMatch.group(1)
+                            }
+                        }
+                        // Fallback for image_gallery_saver
+                        if (proj.android.namespace == null && proj.name.contains('image_gallery_saver')) {
+                            proj.android.namespace = 'io.flutter.plugins.imagegallerysaver'
+                        }
+                    }
+                } catch (Exception e) {
+                    // Fallback namespace for image_gallery_saver
+                    if (proj.name.contains('image_gallery_saver')) {
+                        proj.android.namespace = 'io.flutter.plugins.imagegallerysaver'
+                    }
+                }
+                
+                compileOptions {
+                    sourceCompatibility JavaVersion.VERSION_17
+                    targetCompatibility JavaVersion.VERSION_17
+                }
+            }
+        }
+        
+        // Set Kotlin JVM target for all subprojects
+        proj.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+            kotlinOptions {
+                jvmTarget = "17"
+            }
+        }
+        
+        // Force Kotlin version in dependencies
+        proj.configurations.all {
+            resolutionStrategy {
+                force "org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.10"
+                force "org.jetbrains.kotlin:kotlin-stdlib:1.9.10"
+                force "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.10"
+                force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.10"
+            }
+        }
+    }
 }
+
 subprojects {
     project.evaluationDependsOn(":app")
     configurations.configureEach {
         resolutionStrategy {
             force 'pl.droidsonroids.gif:android-gif-drawable:1.2.25'
+            // Force Kotlin version to be compatible with AGP 8.2.1
+            force "org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.10"
+            force "org.jetbrains.kotlin:kotlin-stdlib:1.9.10"
+            force "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.10"
+            force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.10"
         }
     }
 }

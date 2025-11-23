@@ -3,7 +3,9 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
-import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
+import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:restaurant/controller/qr_code_controller.dart';
@@ -79,11 +81,29 @@ class QrCodeScreen extends StatelessWidget {
                       ui.Image image = await boundary.toImage(pixelRatio: 3.0); // High resolution
                       ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
                       if (byteData != null) {
-                        final result = await ImageGallerySaverPlus.saveImage(
-                          byteData.buffer.asUint8List(),
-                          name: "QRCodeImage",
-                        );
-                        debugPrint("Image saved successfully: $result");
+                        try {
+                          // Save using image_gallery_saver
+                          final result = await ImageGallerySaver.saveImage(
+                            byteData.buffer.asUint8List(),
+                            name: "QRCodeImage",
+                            quality: 100,
+                          );
+                          debugPrint("Image saved successfully: $result");
+                          Get.snackbar("Success".tr, "QR Code saved to gallery".tr);
+                        } catch (e) {
+                          // Fallback: save to app directory
+                          try {
+                            final directory = await getApplicationDocumentsDirectory();
+                            final imagePath = '${directory.path}/QRCodeImage.png';
+                            final file = File(imagePath);
+                            await file.writeAsBytes(byteData.buffer.asUint8List());
+                            debugPrint("Image saved to: $imagePath");
+                            Get.snackbar("Success".tr, "QR Code saved to: $imagePath".tr);
+                          } catch (e2) {
+                            debugPrint("Error saving image: $e2");
+                            Get.snackbar("Error".tr, "Failed to save image".tr);
+                          }
+                        }
                       } else {
                         debugPrint("Byte data is null");
                       }

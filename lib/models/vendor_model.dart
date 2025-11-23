@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:restaurant/models/admin_commission.dart';
 import 'package:restaurant/models/subscription_plan_model.dart';
+import 'package:restaurant/models/dine_in_settings_model.dart';
 
 class VendorModel {
   String? author;
@@ -44,6 +45,7 @@ class VendorModel {
   Timestamp? subscriptionExpiryDate;
   SubscriptionPlanModel? subscriptionPlan;
   String? subscriptionTotalOrders;
+  DineInSettingsModel? dineInSettings;
 
   VendorModel({
     this.author,
@@ -87,6 +89,7 @@ class VendorModel {
     this.subscriptionExpiryDate,
     this.subscriptionPlan,
     this.subscriptionTotalOrders,
+    this.dineInSettings,
   });
 
   VendorModel.fromJson(Map<String, dynamic> json) {
@@ -141,6 +144,7 @@ class VendorModel {
     subscriptionExpiryDate = json['subscriptionExpiryDate'];
     subscriptionPlan = json['subscription_plan'] != null ? SubscriptionPlanModel.fromJson(json['subscription_plan']) : null;
     subscriptionTotalOrders = json['subscriptionTotalOrders'];
+    dineInSettings = json['dineInSettings'] != null ? DineInSettingsModel.fromJson(json['dineInSettings']) : null;
   }
 
   Map<String, dynamic> toJson() {
@@ -198,6 +202,9 @@ class VendorModel {
     data['categoryTitle'] = categoryTitle;
     data['latitude'] = latitude;
     data['subscriptionTotalOrders'] = subscriptionTotalOrders;
+    if (dineInSettings != null) {
+      data['dineInSettings'] = dineInSettings!.toJson();
+    }
     return data;
   }
 }
