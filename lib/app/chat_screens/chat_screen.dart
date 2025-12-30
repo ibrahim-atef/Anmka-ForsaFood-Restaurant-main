@@ -61,9 +61,10 @@ class ChatScreen extends StatelessWidget {
                       },
                       onEmpty: Constant.showEmptyView(message: "No Conversion found"),
                       // orderBy is compulsory to enable pagination
+                      // Use orderId_customerId as chat document ID to create new chat when username changes
                       query: FirebaseFirestore.instance
                           .collection(controller.chatType.value == "Driver" ? 'chat_driver' : 'chat_restaurant')
-                          .doc(controller.orderId.value)
+                          .doc("${controller.orderId.value}_${controller.customerId.value}")
                           .collection("thread")
                           .orderBy('createdAt', descending: false),
                       //Change types customerId

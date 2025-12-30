@@ -4,6 +4,7 @@ import 'dart:convert';
 
 import 'package:restaurant/constant/constant.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 import 'package:restaurant/models/notification_model.dart';
@@ -12,18 +13,36 @@ import 'package:restaurant/utils/fire_store_utils.dart';
 class SendNotification {
   static final _scopes = ['https://www.googleapis.com/auth/firebase.messaging'];
 
-  static Future getCharacters() {
-    return http.get(Uri.parse(Constant.jsonNotificationFileURL.toString()));
+  static Future<String> _loadFcmKeyFile() async {
+    try {
+      // Try to load from local asset file first
+      final String jsonString = await rootBundle.loadString(
+        'assets/fcmkeyfile/forsa-food-b6b50-firebase-adminsdk-fbsvc-32809c880a.json'
+      );
+      return jsonString;
+    } catch (e) {
+      debugPrint("Error loading local FCM key file: $e");
+      // Fallback to URL if local file not found
+      if (Constant.jsonNotificationFileURL.isNotEmpty) {
+        final response = await http.get(Uri.parse(Constant.jsonNotificationFileURL.toString()));
+        return response.body;
+      }
+      throw Exception("FCM key file not found locally and URL not configured");
+    }
   }
 
   static Future<String> getAccessToken() async {
     Map<String, dynamic> jsonData = {};
 
-    await getCharacters().then((response) {
-      jsonData = json.decode(response.body);
-    });
+    try {
+      final jsonString = await _loadFcmKeyFile();
+      jsonData = json.decode(jsonString);
+    } catch (e) {
+      debugPrint("Error loading FCM credentials: $e");
+      rethrow;
+    }
+    
     final serviceAccountCredentials = ServiceAccountCredentials.fromJson(jsonData);
-
     final client = await clientViaServiceAccount(serviceAccountCredentials, _scopes);
     return client.credentials.accessToken.data;
   }

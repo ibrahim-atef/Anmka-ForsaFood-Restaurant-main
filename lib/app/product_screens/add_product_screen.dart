@@ -1120,22 +1120,29 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                       const TextInputType.numberWithOptions(
                                           signed: true, decimal: true),
                                   onchange: (value) {
-                                    var regularPrice = double.parse(controller
-                                        .regularPriceController.value.text
-                                        .toString());
-                                    var discountedPrice = double.parse(
-                                        controller.discountedPriceController
-                                            .value.text
-                                            .toString());
+                                    // Skip validation if fields are empty
+                                    if (value.isEmpty || 
+                                        controller.regularPriceController.value.text.isEmpty) {
+                                      controller.isDiscountedPriceOk.value = false;
+                                      return;
+                                    }
+                                    
+                                    try {
+                                      var regularPrice = double.parse(controller
+                                          .regularPriceController.value.text
+                                          .toString());
+                                      var discountedPrice = double.parse(value);
 
-                                    if (discountedPrice > regularPrice) {
-                                      controller.isDiscountedPriceOk.value =
-                                          true;
-                                      ShowToastDialog.showToast(
-                                          "Please enter valid discount price");
-                                    } else {
-                                      controller.isDiscountedPriceOk.value =
-                                          false;
+                                      if (discountedPrice > regularPrice) {
+                                        controller.isDiscountedPriceOk.value = true;
+                                        ShowToastDialog.showToast(
+                                            "Please enter valid discount price");
+                                      } else {
+                                        controller.isDiscountedPriceOk.value = false;
+                                      }
+                                    } catch (e) {
+                                      // Invalid number format
+                                      controller.isDiscountedPriceOk.value = false;
                                     }
                                   },
                                   prefix: Padding(
@@ -1166,41 +1173,61 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                     fontFamily: AppThemeData.medium,
                                     fontSize: 12),
                               ),
-                              Text(
-                                (controller.discountedPriceController.value.text
-                                            .toString()
-                                            .trim()
-                                            .isEmpty
-                                        ? Constant.amountShow(amount: "0")
-                                        : Constant.amountShow(
-                                            amount: controller
-                                                .discountedPriceController
-                                                .value
-                                                .text))
-                                    .tr,
-                                style: TextStyle(
-                                    color: themeChange.getThem()
-                                        ? AppThemeData.secondary300
-                                        : AppThemeData.secondary300,
-                                    fontFamily: AppThemeData.medium,
-                                    fontSize: 12),
-                              ),
-                              const SizedBox(
-                                width: 5,
-                              ),
-                              Text(
-                                Constant.amountShow(
-                                    amount: controller.regularPriceController
-                                            .value.text.isEmpty
-                                        ? "0"
-                                        : controller
-                                            .regularPriceController.value.text),
-                                style: TextStyle(
-                                    color: themeChange.getThem()
-                                        ? AppThemeData.grey500
-                                        : AppThemeData.grey400,
-                                    fontFamily: AppThemeData.medium,
-                                    decoration: TextDecoration.lineThrough),
+                              // Only show discounted price if it's valid and greater than 0
+                              Builder(
+                                builder: (context) {
+                                  String discountedText = controller.discountedPriceController.value.text.trim();
+                                  String regularText = controller.regularPriceController.value.text.trim();
+                                  
+                                  // Parse values safely
+                                  double? discountedPrice = discountedText.isEmpty ? null : double.tryParse(discountedText);
+                                  double? regularPrice = regularText.isEmpty ? null : double.tryParse(regularText);
+                                  
+                                  // Show discounted price only if valid and less than regular price
+                                  bool showDiscounted = discountedPrice != null && 
+                                                       discountedPrice > 0 && 
+                                                       regularPrice != null &&
+                                                       discountedPrice < regularPrice;
+                                  
+                                  if (showDiscounted) {
+                                    return Row(
+                                      children: [
+                                        Text(
+                                          Constant.amountShow(amount: discountedPrice!.toString()),
+                                          style: TextStyle(
+                                            color: themeChange.getThem()
+                                                ? AppThemeData.secondary300
+                                                : AppThemeData.secondary300,
+                                            fontFamily: AppThemeData.medium,
+                                            fontSize: 12),
+                                        ),
+                                        const SizedBox(width: 5),
+                                        Text(
+                                          Constant.amountShow(amount: regularPrice!.toString()),
+                                          style: TextStyle(
+                                            color: themeChange.getThem()
+                                                ? AppThemeData.grey500
+                                                : AppThemeData.grey400,
+                                            fontFamily: AppThemeData.medium,
+                                            decoration: TextDecoration.lineThrough),
+                                        ),
+                                      ],
+                                    );
+                                  } else {
+                                    // Show only regular price if no valid discount
+                                    return Text(
+                                      regularPrice != null && regularPrice > 0
+                                          ? Constant.amountShow(amount: regularPrice.toString())
+                                          : Constant.amountShow(amount: "0"),
+                                      style: TextStyle(
+                                          color: themeChange.getThem()
+                                              ? AppThemeData.secondary300
+                                              : AppThemeData.secondary300,
+                                          fontFamily: AppThemeData.medium,
+                                          fontSize: 12),
+                                    );
+                                  }
+                                },
                               ),
                             ],
                           ),

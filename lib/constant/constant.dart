@@ -116,7 +116,16 @@ class Constant {
     }
   }
 
-  static String orderId({String orderId = ''}) {
+  static String orderId({String orderId = '', Timestamp? createdAt}) {
+    // If createdAt is provided, generate a readable order number from timestamp (same as user app)
+    if (createdAt != null) {
+      // Convert timestamp to milliseconds and take last 6 digits for a shorter number
+      String timestamp = createdAt.millisecondsSinceEpoch.toString();
+      // Take last 6 digits to create order number (e.g., #234567)
+      String orderNumber = timestamp.substring(timestamp.length - 6);
+      return "#$orderNumber";
+    }
+    // Fallback to old method if no timestamp
     return "#${(orderId).substring(orderId.length - 10)}";
   }
 

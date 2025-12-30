@@ -85,8 +85,9 @@ class LoginController extends GetxController {
                 "This user is disable please contact to administrator".tr);
           }
         } else {
+          ShowToastDialog.closeLoader();
+          ShowToastDialog.showToast("This account is not authorized to access the vendor app. Please use a vendor account.".tr);
           await FirebaseAuth.instance.signOut();
-          // ShowToastDialog.showToast("This user is disable please contact to administrator".tr);
         }
       }
     } on FirebaseAuthException catch (e) {
@@ -165,14 +166,16 @@ class LoginController extends GetxController {
                     Get.offAll(const AppNotAccessScreen());
                   }
                 } else {
+                  ShowToastDialog.closeLoader();
                   await FirebaseAuth.instance.signOut();
                   ShowToastDialog.showToast(
                       "This user is disable please contact to administrator"
                           .tr);
                 }
               } else {
+                ShowToastDialog.closeLoader();
+                ShowToastDialog.showToast("This account is not authorized to access the vendor app. Please use a vendor account.".tr);
                 await FirebaseAuth.instance.signOut();
-                // ShowToastDialog.showToast("This user is disable please contact to administrator".tr);
               }
             } else {
               UserModel userModel = UserModel();
@@ -257,14 +260,16 @@ class LoginController extends GetxController {
                     Get.offAll(const AppNotAccessScreen());
                   }
                 } else {
+                  ShowToastDialog.closeLoader();
                   await FirebaseAuth.instance.signOut();
                   ShowToastDialog.showToast(
                       "This user is disable please contact to administrator"
                           .tr);
                 }
               } else {
+                ShowToastDialog.closeLoader();
+                ShowToastDialog.showToast("This account is not authorized to access the vendor app. Please use a vendor account.".tr);
                 await FirebaseAuth.instance.signOut();
-                // ShowToastDialog.showToast("This user is disable please contact to administrator".tr);
               }
             } else {
               UserModel userModel = UserModel();

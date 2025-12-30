@@ -21,6 +21,7 @@ class DineInBookingModel {
   Timestamp? createdAt;
   String? guestLastName;
   String? discountType;
+  int? tableNumber; // Table number assigned to this booking
 
   DineInBookingModel(
       {this.discount,
@@ -40,7 +41,8 @@ class DineInBookingModel {
         this.firstVisit,
         this.createdAt,
         this.guestLastName,
-        this.discountType});
+        this.discountType,
+        this.tableNumber});
 
   DineInBookingModel.fromJson(Map<String, dynamic> json) {
     print(json['id']);
@@ -64,6 +66,7 @@ class DineInBookingModel {
     createdAt = json['createdAt'];
     guestLastName = json['guestLastName'];
     discountType = json['discountType'];
+    tableNumber = json['tableNumber'];
   }
 
   Map<String, dynamic> toJson() {
@@ -90,6 +93,7 @@ class DineInBookingModel {
     data['createdAt'] = createdAt;
     data['guestLastName'] = guestLastName;
     data['discountType'] = discountType;
+    data['tableNumber'] = tableNumber;
     return data;
   }
 }

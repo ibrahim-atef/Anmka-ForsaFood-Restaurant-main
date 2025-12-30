@@ -521,6 +521,169 @@ class DineInOrderScreen extends StatelessWidget {
                 const SizedBox(
                   height: 5,
                 ),
+                // Show Special Occasion if available
+                if (orderModel.occasion != null && orderModel.occasion!.isNotEmpty) ...[
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          "Special Occasion".tr,
+                          style: TextStyle(
+                            color: themeChange.getThem() ? AppThemeData.grey300 : AppThemeData.grey600,
+                            fontFamily: AppThemeData.regular,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          orderModel.occasion!,
+                          textAlign: TextAlign.end,
+                          style: TextStyle(
+                            color: AppThemeData.secondary300,
+                            fontFamily: AppThemeData.semiBold,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 5),
+                ],
+                // Show Special Request if available
+                if (orderModel.specialRequest != null && orderModel.specialRequest!.isNotEmpty) ...[
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          "Special Request".tr,
+                          style: TextStyle(
+                            color: themeChange.getThem() ? AppThemeData.grey300 : AppThemeData.grey600,
+                            fontFamily: AppThemeData.regular,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          orderModel.specialRequest!,
+                          textAlign: TextAlign.end,
+                          style: TextStyle(
+                            color: themeChange.getThem() ? AppThemeData.grey50 : AppThemeData.grey900,
+                            fontFamily: AppThemeData.semiBold,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 5),
+                ],
+                // Show First Visit badge
+                if (orderModel.firstVisit == true) ...[
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          "First Visit".tr,
+                          style: TextStyle(
+                            color: themeChange.getThem() ? AppThemeData.grey300 : AppThemeData.grey600,
+                            fontFamily: AppThemeData.regular,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Container(
+                          alignment: Alignment.centerRight,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppThemeData.success400,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              "Yes".tr,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontFamily: AppThemeData.semiBold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 5),
+                ],
+                // Table Availability Display
+                Builder(
+                  builder: (context) {
+                    int totalTables = controller.vendorModel.value.dineInSettings?.totalTables ?? 10;
+                    // Count booked tables (accepted bookings for the same date/time slot)
+                    int bookedTables = controller.featureList.where((booking) {
+                      if (booking.id == orderModel.id) return false; // Exclude current booking
+                      if (booking.status != Constant.orderAccepted && booking.status != Constant.orderPlaced) return false;
+                      if (booking.date == null || orderModel.date == null) return false;
+                      // Check if same date and time slot (same day/hour)
+                      DateTime bookingDate = booking.date!.toDate();
+                      DateTime orderDate = orderModel.date!.toDate();
+                      return bookingDate.year == orderDate.year &&
+                             bookingDate.month == orderDate.month &&
+                             bookingDate.day == orderDate.day &&
+                             bookingDate.hour == orderDate.hour;
+                    }).length;
+                    int availableTables = (totalTables - bookedTables).clamp(0, totalTables);
+                    
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            "Tables".tr,
+                            style: TextStyle(
+                              color: themeChange.getThem() ? AppThemeData.grey300 : AppThemeData.grey600,
+                              fontFamily: AppThemeData.regular,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                "$availableTables / $totalTables ${"Available".tr}",
+                                textAlign: TextAlign.end,
+                                style: TextStyle(
+                                  color: availableTables > 0 ? AppThemeData.success400 : AppThemeData.danger300,
+                                  fontFamily: AppThemeData.semiBold,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              if (bookedTables > 0)
+                                Text(
+                                  "$bookedTables ${"Booked".tr}",
+                                  textAlign: TextAlign.end,
+                                  style: TextStyle(
+                                    color: themeChange.getThem() ? AppThemeData.grey400 : AppThemeData.grey500,
+                                    fontFamily: AppThemeData.regular,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+                const SizedBox(height: 5),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -564,7 +727,8 @@ class DineInOrderScreen extends StatelessWidget {
                                 ShowToastDialog.showLoader("Please wait.");
                                 orderModel.status = Constant.orderRejected;
                                 await FireStoreUtils.setBookedOrder(orderModel);
-                                await SendNotification.sendFcmMessage(Constant.dineInAccepted, orderModel.author!.fcmToken.toString(), {});
+                                // Send rejection notification
+                                await SendNotification.sendFcmMessage(Constant.dineInCanceled, orderModel.author!.fcmToken.toString(), {});
                                 controller.getDineBooking();
                                 ShowToastDialog.closeLoader();
                               },

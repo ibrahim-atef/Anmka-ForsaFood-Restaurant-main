@@ -84,6 +84,12 @@ subprojects {
             }
         }
         
+        // Disable treating warnings as errors for all subprojects (fixes camera package deprecation warnings)
+        proj.tasks.withType(JavaCompile).configureEach {
+            options.compilerArgs.removeAll { it == '-Werror' }
+            options.compilerArgs.removeAll { it.startsWith('-Werror') }
+        }
+        
         // Force Kotlin version in dependencies
         proj.configurations.all {
             resolutionStrategy {

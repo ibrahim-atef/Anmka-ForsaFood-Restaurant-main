@@ -15,10 +15,12 @@ class DineInSettingsController extends GetxController {
   RxInt minGuests = 1.obs;
   RxInt maxGuests = 20.obs;
   RxString defaultDiscount = "0".obs;
+  RxInt totalTables = 10.obs;
   
   Rx<TextEditingController> minGuestsController = TextEditingController().obs;
   Rx<TextEditingController> maxGuestsController = TextEditingController().obs;
   Rx<TextEditingController> defaultDiscountController = TextEditingController().obs;
+  Rx<TextEditingController> totalTablesController = TextEditingController().obs;
 
   List<String> daysOfWeek = [
     "Monday",
@@ -49,6 +51,7 @@ class DineInSettingsController extends GetxController {
               minGuests: 1,
               maxGuests: 20,
               defaultDiscount: "0",
+              totalTables: 10,
               daysSettings: daysOfWeek.map((day) {
                 return DineInDaySettings(
                   day: day,
@@ -76,10 +79,12 @@ class DineInSettingsController extends GetxController {
           minGuests.value = dineInSettings.value.minGuests ?? 1;
           maxGuests.value = dineInSettings.value.maxGuests ?? 20;
           defaultDiscount.value = dineInSettings.value.defaultDiscount ?? "0";
+          totalTables.value = dineInSettings.value.totalTables ?? 10;
           
           minGuestsController.value.text = minGuests.value.toString();
           maxGuestsController.value.text = maxGuests.value.toString();
           defaultDiscountController.value.text = defaultDiscount.value;
+          totalTablesController.value.text = totalTables.value.toString();
         }
       },
     );
@@ -231,6 +236,20 @@ class DineInSettingsController extends GetxController {
         dayIndex < dineInSettings.value.daysSettings!.length &&
         slotIndex < (dineInSettings.value.daysSettings![dayIndex].timeSlots?.length ?? 0)) {
       
+      // Validate time - start should be before end
+      if (updatedSlot.from != null && updatedSlot.to != null) {
+        try {
+          DateTime? startTime = _parseTime(updatedSlot.from!);
+          DateTime? endTime = _parseTime(updatedSlot.to!);
+          if (startTime != null && endTime != null && startTime.isAfter(endTime)) {
+            ShowToastDialog.showToast("Start time must be before end time".tr);
+            return;
+          }
+        } catch (e) {
+          print("Error parsing time: $e");
+        }
+      }
+      
       // Create updated days list
       final updatedDays = <DineInDaySettings>[];
       for (int i = 0; i < dineInSettings.value.daysSettings!.length; i++) {
@@ -263,6 +282,19 @@ class DineInSettingsController extends GetxController {
       );
     }
   }
+  
+  // Helper function to parse time string
+  DateTime? _parseTime(String timeStr) {
+    try {
+      return DateFormat('h:mm a').parse(timeStr);
+    } catch (e) {
+      try {
+        return DateFormat('hh:mm a').parse(timeStr);
+      } catch (e2) {
+        return null;
+      }
+    }
+  }
 
   Future<void> selectTime(BuildContext context, Function(String) onTimeSelected) async {
     TimeOfDay? pickedTime = await showTimePicker(
@@ -276,12 +308,30 @@ class DineInSettingsController extends GetxController {
   }
 
   saveSettings() async {
+    // Validate min/max guests
+    if (minGuests.value > maxGuests.value) {
+      ShowToastDialog.showToast("Min guests cannot be greater than max guests".tr);
+      return;
+    }
+    
+    // Validate default discount (ensure it's not negative)
+    double? discountValue = double.tryParse(defaultDiscount.value);
+    if (discountValue == null || discountValue < 0) {
+      defaultDiscount.value = "0";
+      defaultDiscountController.value.text = "0";
+    }
+    
     ShowToastDialog.showLoader("Please wait..".tr);
     
-    dineInSettings.value.isEnabled = dineInSettings.value.isEnabled ?? false;
-    dineInSettings.value.minGuests = minGuests.value;
-    dineInSettings.value.maxGuests = maxGuests.value;
-    dineInSettings.value.defaultDiscount = defaultDiscount.value;
+    // Create new instance with all values to ensure totalTables is saved
+    dineInSettings.value = DineInSettingsModel(
+      isEnabled: dineInSettings.value.isEnabled ?? false,
+      minGuests: minGuests.value,
+      maxGuests: maxGuests.value,
+      defaultDiscount: defaultDiscount.value,
+      totalTables: totalTables.value,
+      daysSettings: dineInSettings.value.daysSettings,
+    );
     
     vendorModel.value.dineInSettings = dineInSettings.value;
     vendorModel.value.enabledDiveInFuture = dineInSettings.value.isEnabled;

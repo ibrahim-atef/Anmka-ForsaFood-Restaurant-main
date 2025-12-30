@@ -48,7 +48,7 @@ class OrderDetailsScreen extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      "Order ${Constant.orderId(orderId: controller.orderModel.value.id.toString())}",
+                                      "Order ${Constant.orderId(orderId: controller.orderModel.value.id.toString(), createdAt: controller.orderModel.value.createdAt)}",
                                       textAlign: TextAlign.start,
                                       style: TextStyle(
                                         fontFamily: AppThemeData.semiBold,

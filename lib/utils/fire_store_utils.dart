@@ -705,17 +705,41 @@ static Future<bool> updateMenu(ProductModel menu) async {
   }
 
   static Future<bool> updateProduct(ProductModel productModel) async {
+    log("🔥 [FireStoreUtils] updateProduct() - Starting...");
+    log("   - Product ID: ${productModel.id}");
+    log("   - Product Name: ${productModel.name}");
+    log("   - Vendor ID: ${productModel.vendorID}");
+    
     bool isUpdate = false;
-    await fireStore
-        .collection(CollectionName.vendorProducts)
-        .doc(productModel.id)
-        .set(productModel.toJson())
-        .whenComplete(() {
-      isUpdate = true;
-    }).catchError((error) {
-      log("Failed to update user: $error");
+    
+    try {
+      Map<String, dynamic> productJson = productModel.toJson();
+      log("📦 [FireStoreUtils] Product JSON keys: ${productJson.keys.toList()}");
+      log("   - price: ${productJson['price']}");
+      log("   - disPrice: ${productJson['disPrice']}");
+      log("   - name: ${productJson['name']}");
+      log("   - categoryID: ${productJson['categoryID']}");
+      log("   - createdAt: ${productJson['createdAt']}");
+      
+      await fireStore
+          .collection(CollectionName.vendorProducts)
+          .doc(productModel.id)
+          .set(productJson, SetOptions(merge: false))
+          .whenComplete(() {
+        log("✅ [FireStoreUtils] Product saved to Firebase successfully");
+        isUpdate = true;
+      }).catchError((error) {
+        log("❌ [FireStoreUtils] Failed to save product: $error");
+        log("   Error type: ${error.runtimeType}");
+        isUpdate = false;
+      });
+    } catch (e, stackTrace) {
+      log("❌ [FireStoreUtils] Exception in updateProduct: $e");
+      log("   Stack trace: $stackTrace");
       isUpdate = false;
-    });
+    }
+    
+    log("🔚 [FireStoreUtils] updateProduct() - Completed with result: $isUpdate");
     return isUpdate;
   }
 
@@ -1189,13 +1213,17 @@ static Future<bool> updateMenu(ProductModel menu) async {
           }
         }
         
-        // Sort by createdAt after fetching (client-side sorting)
+        // Sort by date and createdAt after fetching (client-side sorting)
+        // For upcoming: sort by date ascending (earliest first), then by createdAt descending (newest first)
+        // For history: sort by date descending (most recent first), then by createdAt descending
         if (isUpcoming) {
           list.sort((a, b) {
             if (a.date != null && b.date != null) {
-              int dateCompare = b.date!.compareTo(a.date!);
+              // Sort upcoming bookings by date ascending (earliest first)
+              int dateCompare = a.date!.compareTo(b.date!);
               if (dateCompare != 0) return dateCompare;
             }
+            // If same date, sort by createdAt descending (newest first)
             if (a.createdAt != null && b.createdAt != null) {
               return b.createdAt!.compareTo(a.createdAt!);
             }
@@ -1204,9 +1232,11 @@ static Future<bool> updateMenu(ProductModel menu) async {
         } else {
           list.sort((a, b) {
             if (a.date != null && b.date != null) {
+              // Sort history by date descending (most recent first)
               int dateCompare = b.date!.compareTo(a.date!);
               if (dateCompare != 0) return dateCompare;
             }
+            // If same date, sort by createdAt descending (newest first)
             if (a.createdAt != null && b.createdAt != null) {
               return b.createdAt!.compareTo(a.createdAt!);
             }
@@ -1401,9 +1431,11 @@ static Future<bool> updateMenu(ProductModel menu) async {
   }
 
   static Future addRestaurantInbox(InboxModel inboxModel) async {
+    // Use orderId_customerId as chat document ID to create new chat when username changes
+    String chatDocId = "${inboxModel.orderId}_${inboxModel.customerId}";
     return await fireStore
         .collection("chat_restaurant")
-        .doc(inboxModel.orderId)
+        .doc(chatDocId)
         .set(inboxModel.toJson())
         .then((document) {
       return inboxModel;
@@ -1411,9 +1443,13 @@ static Future<bool> updateMenu(ProductModel menu) async {
   }
 
   static Future addRestaurantChat(ConversationModel conversationModel) async {
+    // Get customerId from inbox or pass it through the model
+    // For now, we'll need to extract it from the receiverId or pass it separately
+    // Since ConversationModel has receiverId which is customerId, we can use that
+    String chatDocId = "${conversationModel.orderId}_${conversationModel.receiverId}";
     return await fireStore
         .collection("chat_restaurant")
-        .doc(conversationModel.orderId)
+        .doc(chatDocId)
         .collection("thread")
         .doc(conversationModel.id)
         .set(conversationModel.toJson())

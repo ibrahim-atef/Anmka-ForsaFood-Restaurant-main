@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:restaurant/models/vendor_category_model.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
@@ -51,7 +52,7 @@ class AddMenuController extends GetxController {
   // Rx<MenuModel> menuModels = MenuModel().obs;
   Rx<DeliveryCharge> deliveryChargeModel = DeliveryCharge().obs;
   var selectedOption = "Surprise bag".obs;
-  RxInt quantity = 1.obs;
+  RxInt quantity = (-1).obs; // Default -1 means unlimited stock
 
 
   getMenu() async {
@@ -73,9 +74,11 @@ class AddMenuController extends GetxController {
 saveDetails() async {
   print("🚀 Starting saveDetails");
 
-  if (selectedOption.value.isEmpty) {
-    ShowToastDialog.showToast("Please select product name");
-    print("⚠️ Validation failed: selectedOption is empty");
+  // Validate product name - use productNameController instead of selectedOption
+  String productName = productNameController.value.text.trim();
+  if (productName.isEmpty) {
+    ShowToastDialog.showToast("Please enter product name");
+    print("⚠️ Validation failed: product name is empty");
     return;
   }
 
@@ -84,8 +87,51 @@ saveDetails() async {
     print("⚠️ Validation failed: price is empty");
     return;
   }
-menuModels.value.quantity = quantity.value;
-menuModels.value.disPrice = productDiscountPriceController.value.text;
+
+  // Validate discount price if provided - must be less than product price
+  String discountPriceText = productDiscountPriceController.value.text.trim();
+  if (discountPriceText.isNotEmpty) {
+    double? discountPrice = double.tryParse(discountPriceText);
+    double? productPrice = double.tryParse(productPriceController.value.text.trim());
+    
+    if (discountPrice == null) {
+      ShowToastDialog.showToast("Please enter a valid discount price");
+      print("⚠️ Validation failed: discount price is not a valid number");
+      return;
+    }
+    
+    if (productPrice == null) {
+      ShowToastDialog.showToast("Please enter a valid product price");
+      print("⚠️ Validation failed: product price is not a valid number");
+      return;
+    }
+    
+    if (discountPrice >= productPrice) {
+      ShowToastDialog.showToast("Discount price must be less than product price");
+      print("⚠️ Validation failed: discount price ($discountPrice) is not less than product price ($productPrice)");
+      return;
+    }
+    
+    if (discountPrice < 0) {
+      ShowToastDialog.showToast("Discount price cannot be negative");
+      print("⚠️ Validation failed: discount price is negative");
+      return;
+    }
+  }
+
+  // Check if editing existing product
+  bool isEditing = menuModels.value.id != null && menuModels.value.id!.isNotEmpty;
+  print("📝 [AddMenuController] Is editing existing product: $isEditing, Product ID: ${menuModels.value.id}");
+  
+  // Store original createdAt if editing
+  Timestamp? originalCreatedAt = menuModels.value.createdAt;
+
+  // ✅ FIX: Preserve quantity - if it's -1 (unlimited), keep it as -1
+  // Don't allow saving 0 if original was -1 unless explicitly set by user
+  menuModels.value.quantity = quantity.value;
+  menuModels.value.disPrice = productDiscountPriceController.value.text;
+  
+  print("📦 [AddMenuController] Saving quantity: ${menuModels.value.quantity} (original was: ${originalCreatedAt != null ? 'editing' : 'new'})");
 
   ShowToastDialog.showLoader("Saving Menu Details");
 
@@ -116,9 +162,22 @@ menuModels.value.disPrice = productDiscountPriceController.value.text;
   menuModels.value.vendorID = Constant.userModel!.vendorID;
   menuModels.value.categoryID = selectedCategoryId.value;
   menuModels.value.photo = images.isNotEmpty ? images.first : "";
-  menuModels.value.name = selectedOption.value;
+  
+  // ✅ FIX: Use productNameController instead of selectedOption to preserve user input
+  menuModels.value.name = productName;
+  print("✅ [AddMenuController] Using product name from controller: $productName");
+  
   menuModels.value.description = productDescription.value.text;
   menuModels.value.price = productPriceController.value.text;
+  
+  // Preserve original createdAt if editing, otherwise set new timestamp
+  if (isEditing && originalCreatedAt != null) {
+    menuModels.value.createdAt = originalCreatedAt;
+    print("✅ [AddMenuController] Preserved original createdAt: $originalCreatedAt");
+  } else if (!isEditing) {
+    menuModels.value.createdAt = Timestamp.now();
+    print("✅ [AddMenuController] Set new createdAt: ${menuModels.value.createdAt}");
+  }
 
   print("📋 menuModels data:");
   print("vendorID: ${menuModels.value.vendorID}");
@@ -127,15 +186,15 @@ menuModels.value.disPrice = productDiscountPriceController.value.text;
   print("name: ${menuModels.value.name}");
   print("description: ${menuModels.value.description}");
   print("price: ${menuModels.value.price}");
+  print("createdAt: ${menuModels.value.createdAt}");
 
   try {
-    bool isUpdating = menuModels.value.id != null &&
-        menuModels.value.id!.isNotEmpty;
+    // isUpdating already checked above
+    print("🔄 Operation: ${isEditing ? 'Update' : 'Create'}");
 
-    print("🔄 Operation: ${isUpdating ? 'Update' : 'Create'}");
-
-    if (isUpdating) {
+    if (isEditing) {
       // ✅ Update menu
+      print("💾 [AddMenuController] Calling updateMenu()...");
       bool success = await FireStoreUtils.updateMenu(menuModels.value);
       ShowToastDialog.closeLoader();
 

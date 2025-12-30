@@ -13,6 +13,7 @@ import 'package:restaurant/app/add_restaurant_screen/add_restaurant_screen.dart'
 import 'package:restaurant/app/chat_screens/chat_screen.dart';
 import 'package:restaurant/app/chat_screens/restaurant_inbox_screen.dart';
 import 'package:restaurant/app/product_rating_view_screen/product_rating_view_screen.dart';
+import 'package:restaurant/app/scan_order_qr_screen/scan_order_qr_screen.dart';
 import 'package:restaurant/app/verification_screen/verification_screen.dart';
 import 'package:restaurant/constant/collection_name.dart';
 import 'package:restaurant/constant/constant.dart';
@@ -148,6 +149,15 @@ class HomeScreen extends StatelessWidget {
                         ],
                       ),
                       actions: [
+                        // QR Scanner Button
+                        IconButton(
+                          icon: const Icon(Icons.qr_code_scanner),
+                          color: themeChange.getThem() ? AppThemeData.grey50 : AppThemeData.grey50,
+                          onPressed: () {
+                            Get.to(const ScanOrderQrScreen());
+                          },
+                          tooltip: "Scan Order QR Code".tr,
+                        ),
                         Visibility(
                           visible: controller.userModel.value.subscriptionPlan
                                   ?.features?.chat !=
@@ -950,30 +960,15 @@ class HomeScreen extends StatelessWidget {
                                 return;
                               }
                             }
-                            if (orderModel.scheduleTime != null) {
-                              if (orderModel.scheduleTime!
-                                  .toDate()
-                                  .isBefore(Timestamp.now().toDate())) {
-                                showDialog(
-                                  context: context,
-                                  builder: (BuildContext context) {
-                                    return estimatedTimeDialog(
-                                        controller, themeChange, orderModel);
-                                  },
-                                );
-                              } else {
-                                ShowToastDialog.showToast(
-                                    "You can accept order on ${DateFormat("EEE dd MMMM , HH:mm a").format(orderModel.scheduleTime!.toDate())}.");
-                              }
-                            } else {
-                              showDialog(
-                                context: context,
-                                builder: (BuildContext context) {
-                                  return estimatedTimeDialog(
-                                      controller, themeChange, orderModel);
-                                },
-                              );
-                            }
+                            // Always allow accept - even with schedule time
+                            // Show dialog to set estimated preparation time
+                            showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return estimatedTimeDialog(
+                                    controller, themeChange, orderModel);
+                              },
+                            );
                           },
                         ),
                       ),
@@ -2148,10 +2143,10 @@ class HomeScreen extends StatelessWidget {
                     height: 20,
                   ),
                   TextFieldWidget(
-                    title: 'Estimated time to Prepare'.tr,
+                    title: 'Estimated time to Prepare (Hours:Minutes)'.tr,
                     inputFormatters: [MaskedInputFormatter('##:##')],
                     controller: controller.estimatedTimeController.value,
-                    hintText: '00:00'.tr,
+                    hintText: '01:30'.tr,
                     textInputType: TextInputType.number,
                     prefix: const Icon(Icons.alarm),
                   ),

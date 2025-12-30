@@ -4,6 +4,7 @@ class DineInSettingsModel {
   int? minGuests;
   int? maxGuests;
   String? defaultDiscount;
+  int? totalTables; // Total number of tables available
 
   DineInSettingsModel({
     this.isEnabled,
@@ -11,6 +12,7 @@ class DineInSettingsModel {
     this.minGuests,
     this.maxGuests,
     this.defaultDiscount,
+    this.totalTables,
   });
 
   DineInSettingsModel.fromJson(Map<String, dynamic> json) {
@@ -18,6 +20,7 @@ class DineInSettingsModel {
     minGuests = json['minGuests'] ?? 1;
     maxGuests = json['maxGuests'] ?? 20;
     defaultDiscount = json['defaultDiscount'] ?? "0";
+    totalTables = json['totalTables'] ?? 10; // Default to 10 tables
     
     if (json['daysSettings'] != null) {
       daysSettings = <DineInDaySettings>[];
@@ -33,6 +36,7 @@ class DineInSettingsModel {
     data['minGuests'] = minGuests;
     data['maxGuests'] = maxGuests;
     data['defaultDiscount'] = defaultDiscount;
+    data['totalTables'] = totalTables;
     if (daysSettings != null) {
       data['daysSettings'] = daysSettings!.map((v) => v.toJson()).toList();
     }

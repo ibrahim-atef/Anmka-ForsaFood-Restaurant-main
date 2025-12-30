@@ -124,6 +124,28 @@ class DineInSettingsScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 20),
                       
+                      // Total Tables
+                      TextFieldWidget(
+                        title: "Total Tables".tr,
+                        controller: controller.totalTablesController.value,
+                        hintText: "10",
+                        textInputType: TextInputType.number,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        onchange: (value) {
+                          if (value.isNotEmpty) {
+                            int? tableValue = int.tryParse(value);
+                            if (tableValue != null && tableValue > 0) {
+                              controller.totalTables.value = tableValue;
+                            } else {
+                              controller.totalTables.value = 10;
+                              controller.totalTablesController.value.text = "10";
+                              ShowToastDialog.showToast("Table count must be greater than 0".tr);
+                            }
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      
                       // Default Discount
                       TextFieldWidget(
                         title: "Default Discount (%)".tr,
@@ -132,7 +154,20 @@ class DineInSettingsScreen extends StatelessWidget {
                         textInputType: TextInputType.number,
                         inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
                         onchange: (value) {
-                          controller.defaultDiscount.value = value;
+                          // Ensure value is not negative
+                          if (value.isEmpty) {
+                            controller.defaultDiscount.value = "0";
+                            controller.defaultDiscountController.value.text = "0";
+                          } else {
+                            double? discountValue = double.tryParse(value);
+                            if (discountValue == null || discountValue < 0) {
+                              controller.defaultDiscount.value = "0";
+                              controller.defaultDiscountController.value.text = "0";
+                              ShowToastDialog.showToast("Discount cannot be negative".tr);
+                            } else {
+                              controller.defaultDiscount.value = value;
+                            }
+                          }
                         },
                       ),
                       const SizedBox(height: 30),
@@ -408,12 +443,18 @@ class DineInSettingsScreen extends StatelessWidget {
               Expanded(
                 child: TextFieldWidget(
                   title: "Discount (%)".tr,
-                  controller: TextEditingController(text: slot.discount ?? "0")..selection = TextSelection.fromPosition(TextPosition(offset: (slot.discount ?? "0").length)),
-                  hintText: "0",
+                  controller: TextEditingController(text: slot.discount ?? controller.defaultDiscount.value)..selection = TextSelection.fromPosition(TextPosition(offset: (slot.discount ?? controller.defaultDiscount.value).length)),
+                  hintText: controller.defaultDiscount.value,
                   textInputType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
                   onchange: (value) {
-                    slot.discount = value.isEmpty ? "0" : value;
+                    // Use default discount if empty
+                    slot.discount = value.isEmpty ? controller.defaultDiscount.value : value;
+                    // Ensure not negative
+                    double? discountValue = double.tryParse(slot.discount ?? "0");
+                    if (discountValue == null || discountValue < 0) {
+                      slot.discount = controller.defaultDiscount.value;
+                    }
                     controller.updateTimeSlot(dayIndex, slotIndex, slot);
                   },
                 ),

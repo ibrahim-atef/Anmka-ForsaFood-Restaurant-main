@@ -42,10 +42,15 @@ class _AddMenuScreenState extends State<AddMenuScreen> {
     print("Edit Model: $editModel");
     if (editModel != null) {
       controller.productDiscountPriceController.value.text = editModel!.disPrice ?? "";
-controller.quantity.value = (editModel!.quantity == -1) ? 0 : (editModel!.quantity ?? 0);
+      // ✅ FIX: Preserve -1 (unlimited) when loading data, default to -1 if null
+      // Use -1 to represent unlimited stock, 0 means out of stock
+      controller.quantity.value = editModel!.quantity ?? -1;
+      print("📦 [AddMenuScreen] Loading quantity: ${editModel!.quantity} (preserved as ${controller.quantity.value})");
 
       controller.menuModels.value = editModel!;
       controller.productNameController.value.text = editModel!.name ?? "";
+      // Update selectedOption to match the product name when editing
+      controller.selectedOption.value = editModel!.name ?? "";
       // controller.productNameController.value.text = editModel!.productName ?? "";
       controller.productDescription.value.text = editModel!.description ?? "";
       // controller.productDescription.value.text = editModel!.productDescription ?? "";
@@ -126,28 +131,15 @@ _buildQuantitySelector(themeChange),
                         const SizedBox(height: 12),
 
 TextFieldWidget(
-  title: 'special offer (%)'.tr,
+  title: 'Write the discount price'.tr,
   controller: controller.productDiscountPriceController.value,
-  hintText: 'Enter discount percentage (max 50%)'.tr,
+  hintText: 'Enter discount price'.tr,
   enable: true,
   textInputAction: TextInputAction.next,
-  textInputType: TextInputType.number,
+  textInputType: const TextInputType.numberWithOptions(decimal: true),
   inputFormatters: [
-    FilteringTextInputFormatter.digitsOnly,
-    LengthLimitingTextInputFormatter(2),        // أقصى رقمين
+    FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')), // Allow decimal numbers
   ],
-  onchange: (value) {
-    final intVal = int.tryParse(value);
-    if (intVal != null && intVal > 50) {        // حد أقصى 50
-      controller.productDiscountPriceController.value.text = '50';
-      controller.productDiscountPriceController.value.selection =
-          TextSelection.fromPosition(
-        TextPosition(
-          offset: controller.productDiscountPriceController.value.text.length,
-        ),
-      );
-    }
-  },
 ),
 
 const SizedBox(height: 12),
@@ -441,7 +433,7 @@ Widget _buildQuantitySelector(DarkThemeProvider themeChange) {
             children: [
               IconButton(
                 icon: const Icon(Icons.remove_circle_outline, size: 28),
-                onPressed: controller.quantity.value > 0
+                onPressed: controller.quantity.value > 0 && controller.quantity.value != -1
                     ? () => controller.quantity.value--
                     : null,
               ),
@@ -455,7 +447,9 @@ Widget _buildQuantitySelector(DarkThemeProvider themeChange) {
                       : AppThemeData.grey200,
                 ),
                 child: Text(
-                  controller.quantity.value.toString(),
+                  controller.quantity.value == -1 
+                      ? "Unlimited".tr 
+                      : controller.quantity.value.toString(),
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -464,7 +458,28 @@ Widget _buildQuantitySelector(DarkThemeProvider themeChange) {
               ),
               IconButton(
                 icon: const Icon(Icons.add_circle_outline, size: 28),
-                onPressed: () => controller.quantity.value++,
+                onPressed: () {
+                  if (controller.quantity.value < 0) {
+                    controller.quantity.value = 0;
+                  }
+                  controller.quantity.value++;
+                },
+              ),
+              // Add "Set Unlimited" button
+              const SizedBox(width: 8),
+              TextButton(
+                onPressed: () {
+                  controller.quantity.value = -1;
+                },
+                child: Text(
+                  "Unlimited".tr,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: themeChange.getThem()
+                        ? AppThemeData.primary300
+                        : AppThemeData.primary300,
+                  ),
+                ),
               ),
             ],
           ),
